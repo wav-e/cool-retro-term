@@ -115,7 +115,7 @@ Item{
             return Math.round(size / factor) * factor;
         }
 
-        colorScheme: "cool-retro-term"
+        colorScheme: appSettings.colorSchemeStr
 
         smooth: !appSettings.lowResolutionFont
         enableBold: false

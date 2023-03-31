@@ -17,6 +17,7 @@
         <file>SettingsEffectsTab.qml</file>
         <file>main.qml</file>
         <file>SettingsTerminalTab.qml</file>
+        <file>SettingsExtraTab.qml</file>
         <file>FontScanlines.qml</file>
         <file>fonts/1977-apple2/PrintChar21.ttf</file>
         <file>fonts/1971-ibm-3278/3270-Regular.ttf</file>

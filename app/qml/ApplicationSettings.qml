@@ -37,6 +37,8 @@ QtObject {
     property bool isMacOS: Qt.platform.os === "osx"
 
     // GENERAL SETTINGS ///////////////////////////////////////////////////////
+
+    property string colorSchemeStr: "Linux"
     property int x: 100
     property int y: 100
     property int width: 1024
@@ -87,7 +89,9 @@ QtObject {
     property real glowingLine: 0.2
     property real burnIn: 0.25
     property real bloom: 0.55
-
+    property real grid: 0.0
+    property real blur: 0.0
+    property real rasterization_intensivity: 0.5
     property real chromaColor: 0.25
     property real saturationColor: 0.25
 

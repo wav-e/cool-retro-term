@@ -37,6 +37,10 @@ Item {
 
     property real ambientLight: appSettings.ambientLight * 0.2
 
+    property real grid: appSettings.grid
+    property real blur: appSettings.blur
+    property real rasterization_intensivity: appSettings.rasterization_intensivity
+
     property size virtualResolution
     property size screenResolution
 
@@ -60,6 +64,10 @@ Item {
          property real chromaColor: parent.chromaColor
          property real ambientLight: parent.ambientLight
 
+         property real blur: parent.blur
+         property real grid: parent.grid
+         property real rasterization_intensivity: parent.rasterization_intensivity
+
          property real flickering: appSettings.flickering
          property real horizontalSync: appSettings.horizontalSync
          property real horizontalSyncStrength: Utils.lint(0.05, 0.35, horizontalSync)
@@ -78,6 +86,7 @@ Item {
                                                (height * 0.75) / (noiseTexture.height * appSettings.windowScaling * appSettings.totalFontScaling))
 
          property size virtualResolution: parent.virtualResolution
+         property size screenResolution: parent.screenResolution
 
          // Rasterization might display oversamping issues if virtual resolution is close to physical display resolution.
          // We progressively disable rasterization from 4x up to 2x resolution.
@@ -173,9 +182,16 @@ Item {
              uniform highp vec4 backgroundColor;
              uniform lowp float shadowLength;
 
+             uniform lowp float rasterization_intensivity;
+             uniform highp vec2 screenResolution;
              uniform highp vec2 virtualResolution;
              uniform lowp float rasterizationIntensity;\n" +
+             
+             (grid !== 0 ? "
+                 uniform lowp float grid;" : "") +    
 
+             (blur !== 0 ? "
+                 uniform lowp float blur;" : "") +   
              (burnIn !== 0 ? "
                  uniform sampler2D burnInSource;
                  uniform highp float burnInLastUpdate;
@@ -290,6 +306,38 @@ Item {
                  :  "vec2 txt_coords = coords;") +
 
                  "float color = 0.0001;" +
+                 "vec3 txt_color = texture2D(screenBuffer, txt_coords).rgb;" +
+
+                 (blur !== 0 ? "
+                        
+                     const float Pi = 6.28318530718; // Pi*2
+
+                    // GAUSSIAN BLUR SETTINGS {{{
+                    
+                    float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+                    float Quality = 2.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
+                    float Size = 3.0*blur; // BLUR SIZE (Radius)
+
+                    // GAUSSIAN BLUR SETTINGS }}}
+                   
+                    vec2 Radius = Size/screenResolution.xy;
+                    
+                    // Normalized pixel coordinates (from 0 to 1)
+                    // Pixel colour
+                    vec3 Color = texture2D(screenBuffer, txt_coords).rgb;
+                    // Blur calculations
+                    for( float d=0.0; d<Pi; d+=Pi/Directions)
+                    {
+                        for(float i=1.0/Quality; i<=1.0; i+=1.0/Quality)
+                        {
+                            Color += texture2D( screenBuffer, txt_coords+vec2(cos(d),sin(d))*Radius*i).rgb;// * 2.0/Quality;      
+                        }
+                    }
+                        
+                    // Output to screen
+                    Color /= Quality * Directions;   
+                    vec3 color_blur = Color;
+                    txt_color = color_blur;" : "") +   
 
                  (staticNoise !== 0 ? "
                      float noiseVal = noiseTexel.a;
@@ -298,7 +346,6 @@ Item {
                  (glowingLine !== 0 ? "
                      color += randomPass(coords * virtualResolution) * glowingLine;" : "") +
 
-                 "vec3 txt_color = texture2D(screenBuffer, txt_coords).rgb;" +
 
                  (burnIn !== 0 ? "
                      vec4 txt_blur = texture2D(burnInSource, staticCoords);
@@ -309,7 +356,19 @@ Item {
 
                   "txt_color += fontColor.rgb * vec3(color);" +
 
-                  "txt_color = applyRasterization(staticCoords, txt_color, virtualResolution, rasterizationIntensity);\n" +
+                  "txt_color = applyRasterization(staticCoords, txt_color, virtualResolution, rasterization_intensivity*2.0);\n" +
+
+                (grid !== 0 ? "
+                    vec2 u = screenResolution.y/4.0*qt_TexCoord0;
+                    u.x *= screenResolution.x/screenResolution.y;
+                    vec2 s = vec2(1.,1.732);
+                    vec2 a = mod(u     ,s)*2.-s;
+                    vec2 b = mod(u+s*.5,s)*2.-s;
+                    
+                    txt_color *= 1. -vec3(.2*min(dot(a,a),dot(b,b)));
+
+                    //txt_color *= 1.5;
+                    " : "") +
 
                  "vec3 finalColor = txt_color;" +
 
