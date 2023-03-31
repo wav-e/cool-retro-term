@@ -365,9 +365,9 @@ Item {
                     vec2 a = mod(u     ,s)*2.-s;
                     vec2 b = mod(u+s*.5,s)*2.-s;
                     
-                    txt_color *= 1. -vec3(.2*min(dot(a,a),dot(b,b)));
+                    txt_color *= 1.0 - vec3(grid*min(dot(a,a),dot(b,b)));
 
-                    //txt_color *= 1.5;
+                    //txt_color = txt_color*(1.5);
                     " : "") +
 
                  "vec3 finalColor = txt_color;" +

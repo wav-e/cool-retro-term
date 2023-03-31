@@ -42,16 +42,9 @@ ColumnLayout {
                 onNewValue: appSettings.rasterization_intensivity = newValue
                 value: appSettings.rasterization_intensivity
             }
-
-            CheckBox {
-                id: grid
-                text: qsTr("Grid")
-                checked: appSettings.grid
-                onCheckedChanged: appSettings.grid = checked
-            }
-            Binding {
-                target: grid
-                property: "checked"
+            CheckableSlider {
+                name: qsTr("Grid")
+                onNewValue: appSettings.grid = newValue
                 value: appSettings.grid
             }
             ComboBox {
