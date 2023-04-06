@@ -50,15 +50,16 @@ ShaderTerminal {
     }
 
     //  EFFECTS  ////////////////////////////////////////////////////////////////
+
     Loader {
         id: bloomEffectLoader
         active: appSettings.bloom
         asynchronous: true
-        width: parent.width * appSettings.bloomQuality
-        height: parent.height * appSettings.bloomQuality
+        width: parent.width * appSettings.bloomQuality * 2.0
+        height: parent.height * appSettings.bloomQuality * 2.0
 
         sourceComponent: FastBlur {
-            radius: Utils.lint(16, 64, appSettings.bloomQuality)
+            radius: Utils.lint(0.5, 32, appSettings.bloom_radius)
             source: terminal.mainSource
             transparentBorder: true
         }

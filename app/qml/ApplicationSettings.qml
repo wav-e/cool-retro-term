@@ -63,6 +63,8 @@ QtObject {
     onWindowScalingChanged: handleFontChanged()
 
     // PROFILE SETTINGS ///////////////////////////////////////////////////////
+    property bool cameraUsing: false
+
     property real windowOpacity: 1.0
     property real ambientLight: 0.2
     property real contrast: 0.80
@@ -89,6 +91,7 @@ QtObject {
     property real glowingLine: 0.2
     property real burnIn: 0.25
     property real bloom: 0.55
+    property real bloom_radius: 0.50
     property real grid: 0.0
     property real blur: 0.0
     property real rasterization_intensivity: 0.5

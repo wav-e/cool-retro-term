@@ -95,6 +95,8 @@ Item {
          property real displayTerminalFrame: appSettings._frameMargin > 0 || appSettings.screenCurvature > 0
 
          property real time: timeManager.time
+         property ShaderEffectSource noiseBlueSource: noiseBlueShaderSource
+         property size noiseBlueSize: Qt.size(noiseBlueTexture.width, noiseBlueTexture.height)
          property ShaderEffectSource noiseSource: noiseShaderSource
 
          // If something goes wrong activate the fallback version of the shader.
@@ -118,6 +120,24 @@ Item {
              wrapMode: ShaderEffectSource.Repeat
              visible: false
              smooth: true
+         }
+
+         // texture used for dithering
+         Image {
+             id: noiseBlueTexture
+             source: "images/blueNoise256.png"
+             width: 256
+             height: 256
+             fillMode: Image.Tile
+             visible: false
+         }
+         ShaderEffectSource {
+             id: noiseBlueShaderSource
+             sourceItem: noiseBlueTexture
+             wrapMode: ShaderEffectSource.Repeat
+             mipmap: true
+             visible: false
+             smooth: false
          }
 
          //Print the number with a reasonable precision for the shader.
@@ -198,9 +218,12 @@ Item {
                  uniform highp float burnInTime;" : "") +
              (staticNoise !== 0 ? "
                  uniform highp float staticNoise;" : "") +
-             (((staticNoise !== 0 || jitter !== 0) ||(fallBack && (flickering || horizontalSync))) ? "
-                 uniform lowp sampler2D noiseSource;
-                 uniform highp vec2 scaleNoiseSize;" : "") +
+
+                 "uniform highp sampler2D noiseBlueSource;" +
+                 "uniform vec2 noiseBlueSize;" +
+
+                 "uniform lowp sampler2D noiseSource;" +
+                 "uniform highp vec2 scaleNoiseSize;" +
              (displayTerminalFrame ? "
                  uniform lowp sampler2D frameSource;" : "") +
              (screenCurvature !== 0 ? "
@@ -239,10 +262,10 @@ Item {
                  return min2(step(0.0, v) - step(1.0, v));
              }
 
-             vec2 barrel(vec2 v, vec2 cc) {" +
+             vec2 barrel(vec2 v, vec2 cc, float power) {" +
 
                  (screenCurvature !== 0 ? "
-                     float distortion = dot(cc, cc) * screenCurvature;
+                     float distortion = dot(cc, cc) * power;
                      return (v - cc * (1.0 + distortion) * distortion);"
                  :
                      "return v;") +
@@ -261,7 +284,7 @@ Item {
 
              "void main() {" +
                  "vec2 cc = vec2(0.5) - qt_TexCoord0;" +
-                 "float distance = length(cc);" +
+                 "float _distance = length(cc);" +
 
                  //FallBack if there are problems
                  (fallBack && (flickering !== 0.0 || horizontalSync !== 0.0) ?
@@ -281,7 +304,7 @@ Item {
                      float noise = staticNoise;" : "") +
 
                  (screenCurvature !== 0 ? "
-                     vec2 staticCoords = barrel(qt_TexCoord0, cc);"
+                     vec2 staticCoords = barrel(qt_TexCoord0, cc, screenCurvature);"
                  :"
                      vec2 staticCoords = qt_TexCoord0;") +
 
@@ -314,8 +337,8 @@ Item {
 
                     // GAUSSIAN BLUR SETTINGS {{{
                     
-                    float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
-                    float Quality = 2.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
+                    float Directions = 8.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+                    float Quality = 1.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
                     float Size = 3.0*blur; // BLUR SIZE (Radius)
 
                     // GAUSSIAN BLUR SETTINGS }}}
@@ -359,7 +382,7 @@ Item {
                   "txt_color = applyRasterization(staticCoords, txt_color, virtualResolution, rasterization_intensivity*2.0);\n" +
 
                 (grid !== 0 ? "
-                    vec2 u = screenResolution.y/4.0*qt_TexCoord0;
+                    vec2 u = screenResolution.y/5.0*qt_TexCoord0;
                     u.x *= screenResolution.x/screenResolution.y;
                     vec2 s = vec2(1.,1.732);
                     vec2 a = mod(u     ,s)*2.-s;
@@ -376,12 +399,16 @@ Item {
                      finalColor *= brightness;" : "") +
 
                  (ambientLight !== 0 ? "
-                     finalColor += vec3(ambientLight) * (1.0 - distance) * (1.0 - distance);" : "") +
+                     finalColor += vec3(ambientLight) * (1.0 - _distance) * (1.0 - _distance);" : "") +
 
                  (displayTerminalFrame ?
                     "vec4 frameColor = texture2D(frameSource, qt_TexCoord0);
                      finalColor = mix(finalColor, frameColor.rgb, frameColor.a);"
                  : "") +
+
+                 "//dithering noise add
+                 vec4 noise_tex = texture2D(noiseBlueSource, gl_FragCoord.xy/noiseBlueSize);
+                 finalColor.rgb += vec3((noise_tex.r + noise_tex.g)-0.5)/255.0;" +
 
                  "gl_FragColor = vec4(finalColor, qt_Opacity);" +
              "}"
@@ -512,6 +539,7 @@ Item {
                  "vec2 cc = vec2(0.5) - qt_TexCoord0;" +
 
                  (screenCurvature !== 0 ? "
+                    //barrel transfom, with zoom out + reflections
                      float distortion = dot(cc, cc) * screenCurvature;
                      vec2 curvatureCoords = (qt_TexCoord0 - cc * (1.0 + distortion) * distortion);
                      vec2 txt_coords = - 2.0 * curvatureCoords + 3.0 * step(vec2(0.0), curvatureCoords) * curvatureCoords - 3.0 * step(vec2(1.0), curvatureCoords) * curvatureCoords;"

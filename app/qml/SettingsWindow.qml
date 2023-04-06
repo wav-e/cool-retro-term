@@ -53,6 +53,9 @@ Window {
             TabButton {
                 text: qsTr("Extra")
             }
+            TabButton {
+                text: qsTr("Camera")
+            }            
         }
 
         Frame {
@@ -73,6 +76,7 @@ Window {
                 SettingsEffectsTab { }
                 SettingsAdvancedTab { }
                 SettingsExtraTab { }
+                SettingsCameraTab { }
             }
         }
     }
