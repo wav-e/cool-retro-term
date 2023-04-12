@@ -583,6 +583,7 @@ Item {
          id: blurShaderSource
          visible: false
          sourceItem: motionBlur_shaderA
+         wrapMode: ShaderEffectSource.Repeat
          hideSource: true
      }
 
