@@ -26,7 +26,7 @@ QtObject {
     property var source: _font.source
     property int pixelSize: _font.pixelSize
     property int lineSpacing: _font.lineSpacing
-    property real screenScaling: scaling * _font.baseScaling
+    property real screenScaling: Math.floor(scaling * _font.baseScaling)
     property real defaultFontWidth: fontlist.get(selectedFontIndex).fontWidth
     property bool lowResolutionFont: true
 

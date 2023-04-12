@@ -93,8 +93,13 @@ QtObject {
     property real bloom: 0.55
     property real bloom_radius: 0.50
     property real grid: 0.0
-    property real blur: 0.0
-    property real rasterization_intensivity: 0.5
+
+    property real blur: 0.5
+    property real blurDirections: 16.0     
+    property real blurRadius: 0.1
+    property real blurQuality: 4.0
+
+    property real rasterization_intensivity: 1.0
     property real chromaColor: 0.25
     property real saturationColor: 0.25
 

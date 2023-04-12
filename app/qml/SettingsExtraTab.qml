@@ -21,8 +21,88 @@ import QtQuick 2.2
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.1
 
+import "Components"
+
 ColumnLayout {
-    spacing: 2
+
+
+    GroupBox {
+        title: qsTr("Blur")
+        Layout.fillWidth: true
+
+
+
+        GridLayout {
+            anchors.fill: parent
+            columns: 4
+
+
+            CheckableSlider {
+                Layout.columnSpan: 4
+                name: qsTr("Blur blend")
+                onNewValue: appSettings.blur = newValue
+                value: appSettings.blur
+            }
+
+
+            Label {
+                text: qsTr("Directions")
+            }
+            Slider {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+
+                stepSize: 1.0
+                from: 1.0
+                to: 64.0
+
+                value: appSettings.blurDirections
+                onValueChanged: appSettings.blurDirections = value
+                }
+            SizedLabel {
+                text: appSettings.blurDirections
+            }
+
+
+            Label {
+                text: qsTr("Radius")
+            }
+            Slider {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+
+                stepSize: 0.1
+                from: 0.1
+                to: 32.0
+
+                value: appSettings.blurRadius
+                onValueChanged: appSettings.blurRadius = value
+                }
+            SizedLabel {
+                text: Math.round(appSettings.blurRadius*100)/100
+            }
+
+
+            Label {
+                text: qsTr("Quality")
+            }
+            Slider {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+
+                stepSize: 1.0
+                from: 1.0
+                to: 12.0
+
+                value: appSettings.blurQuality
+                onValueChanged: appSettings.blurQuality = value
+                }
+            SizedLabel {
+                text: appSettings.blurQuality
+            }
+        }
+    }
+
 
     GroupBox {
         title: qsTr("Effects")
@@ -31,12 +111,6 @@ ColumnLayout {
         ColumnLayout {
             anchors.fill: parent
 
-            CheckableSlider {
-                name: qsTr("Text blur")
-                onNewValue: appSettings.blur = newValue
-                value: appSettings.blur
-            }
-        
             CheckableSlider {
                 name: qsTr("Raster intensity")
                 onNewValue: appSettings.rasterization_intensivity = newValue

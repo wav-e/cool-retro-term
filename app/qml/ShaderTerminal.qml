@@ -39,6 +39,10 @@ Item {
 
     property real grid: appSettings.grid
     property real blur: appSettings.blur
+    property real blurDirections: appSettings.blurDirections
+    property real blurRadius: appSettings.blurRadius
+    property real blurQuality: appSettings.blurQuality
+
     property real rasterization_intensivity: appSettings.rasterization_intensivity
 
     property size virtualResolution
@@ -58,6 +62,7 @@ Item {
          property ShaderEffectSource burnInSource: burnInEffect.source
          property ShaderEffectSource frameSource: terminalFrameLoader.item
 
+         property ShaderEffectSource blurBuffer: blurShaderSource
          property color fontColor: parent.fontColor
          property color backgroundColor: parent.backgroundColor
          property real screenCurvature: parent.screenCurvature
@@ -192,6 +197,7 @@ Item {
              #ifdef GL_ES
                  precision mediump float;
              #endif
+             uniform sampler2D blurBuffer;
 
              uniform sampler2D screenBuffer;
              uniform highp float qt_Opacity;
@@ -210,8 +216,7 @@ Item {
              (grid !== 0 ? "
                  uniform lowp float grid;" : "") +    
 
-             (blur !== 0 ? "
-                 uniform lowp float blur;" : "") +   
+                 "uniform lowp float blur;" +
              (burnIn !== 0 ? "
                  uniform sampler2D burnInSource;
                  uniform highp float burnInLastUpdate;
@@ -331,40 +336,9 @@ Item {
                  "float color = 0.0001;" +
                  "vec3 txt_color = texture2D(screenBuffer, txt_coords).rgb;" +
 
-                 (blur !== 0 ? "
-                        
-                     const float Pi = 6.28318530718; // Pi*2
-
-                    // GAUSSIAN BLUR SETTINGS {{{
-                    
-                    float Directions = 8.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
-                    float Quality = 1.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
-                    float Size = 3.0*blur; // BLUR SIZE (Radius)
-
-                    // GAUSSIAN BLUR SETTINGS }}}
-                   
-                    vec2 Radius = Size/screenResolution.xy;
-                    
-                    // Normalized pixel coordinates (from 0 to 1)
-                    // Pixel colour
-                    vec3 Color = texture2D(screenBuffer, txt_coords).rgb;
-                    // Blur calculations
-                    for( float d=0.0; d<Pi; d+=Pi/Directions)
-                    {
-                        for(float i=1.0/Quality; i<=1.0; i+=1.0/Quality)
-                        {
-                            Color += texture2D( screenBuffer, txt_coords+vec2(cos(d),sin(d))*Radius*i).rgb;// * 2.0/Quality;      
-                        }
-                    }
-                        
-                    // Output to screen
-                    Color /= Quality * Directions;   
-                    vec3 color_blur = Color;
-                    txt_color = color_blur;" : "") +   
-
                  (staticNoise !== 0 ? "
                      float noiseVal = noiseTexel.a;
-                     color += noiseVal * noise * (1.0 - distance * 1.3);" : "") +
+                     color += noiseVal * noise * (1.0 - _distance * 1.3);" : "") +
 
                  (glowingLine !== 0 ? "
                      color += randomPass(coords * virtualResolution) * glowingLine;" : "") +
@@ -459,6 +433,9 @@ Item {
          height: parent.height * appSettings.windowScaling
 
          property ShaderEffectSource source: parent.source
+         property ShaderEffectSource blurBuffer: blurShaderSource
+
+
          property ShaderEffectSource bloomSource: parent.bloomSource
 
          property color fontColor: parent.fontColor
@@ -491,6 +468,10 @@ Item {
              #ifdef GL_ES
                  precision mediump float;
              #endif
+
+
+
+             uniform sampler2D blurBuffer;
 
              uniform sampler2D source;
              uniform highp float qt_Opacity;
@@ -546,7 +527,7 @@ Item {
                  :"
                      vec2 txt_coords = qt_TexCoord0;") +
 
-                 "vec3 txt_color = texture2D(source, txt_coords).rgb;" +
+                 "vec3 txt_color = texture2D(blurBuffer, txt_coords).rgb;" +
 
                  (rbgShift !== 0 ? "
                      vec2 displacement = vec2(12.0, 0.0) * rbgShift;
@@ -597,4 +578,125 @@ Item {
          sourceItem: staticShader
          hideSource: true
      }
+
+    ShaderEffectSource {
+         id: blurShaderSource
+         visible: false
+         sourceItem: motionBlur_shaderA
+         hideSource: true
+     }
+
+    ShaderEffect {
+         id: motionBlur_shaderA
+
+
+         property size screenResolution: parent.screenResolution
+         property size virtualResolution: parent.virtualResolution
+
+         width: parent.width * appSettings.windowScaling
+         height: parent.height * appSettings.windowScaling
+
+         property ShaderEffectSource source: terminal.mainSource
+        property real blur:        parent.blur
+
+         property real blurDirections: parent.blurDirections
+         property real blurRadius:  parent.blurRadius
+         property real blurQuality: parent.blurQuality
+
+         property color fontColor: parent.fontColor
+         property color backgroundColor: parent.backgroundColor
+
+
+         property real screenCurvature: parent.screenCurvature
+
+         property real chromaColor: appSettings.chromaColor;
+
+         property real screen_brightness: Utils.lint(0.5, 1.5, appSettings.brightness)
+
+
+         blending: false
+         visible: false
+
+         //Print the number with a reasonable precision for the shader.
+         function str(num){
+             return num.toFixed(8);
+         }
+
+         fragmentShader: "
+             #ifdef GL_ES
+                 precision mediump float;
+             #endif
+
+             uniform sampler2D source;
+             
+             uniform lowp float blur;
+             uniform lowp float blurDirections;
+             uniform lowp float blurRadius;
+             uniform lowp float blurQuality;
+
+             uniform highp float qt_Opacity;
+             varying highp vec2 qt_TexCoord0;
+             uniform highp vec4 fontColor;
+             uniform highp vec4 backgroundColor;
+             uniform lowp float screen_brightness;
+             uniform vec2 screenResolution;
+             uniform vec2 virtualResolution;" +
+
+
+
+             shaderLibrary.min2 +
+             shaderLibrary.sum2 +
+             shaderLibrary.rgb2grey +
+
+            "float scanline_step(vec2 uv, float num){
+                uv = fract(uv*num);
+                uv = uv * uv;
+                return step(0.25, uv.y);
+            }" +
+
+
+            "vec3 get_tex(vec2 uv){
+                return texture2D(source, uv).rgb;// * scanline_step(uv, virtualResolution.y);
+            }" +
+
+             "void main() {" +
+                 "vec2 cc = vec2(0.5) - qt_TexCoord0;" +
+                "vec3 txt_color = get_tex(qt_TexCoord0);" +
+                (blur !== 0 ? "
+                 const float Pi = 6.28318530718; // Pi*2
+
+                // GAUSSIAN BLUR SETTINGS {{{
+                
+                float Directions = blurDirections; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+                float Quality = blurQuality; // BLUR QUALITY (Default 4.0 - More is better but slower)
+                float Size = blurRadius; // BLUR SIZE (Radius)
+
+                // GAUSSIAN BLUR SETTINGS }}}
+               
+                vec2 Radius = Size/screenResolution.xy;
+                
+                // Normalized pixel coordinates (from 0 to 1)
+                // Pixel colour
+                vec3 Color = get_tex(qt_TexCoord0);
+                // Blur calculations
+                for( float d=0.0; d<Pi; d+=Pi/Directions)
+                {
+                    for(float i=1.0/Quality; i<=1.0; i+=1.0/Quality)
+                    {
+                        Color += get_tex(qt_TexCoord0+vec2(cos(d),sin(d))*Radius*i); // * 2.0/Quality;      
+                    }
+                }
+                    
+                // Output to screen
+                Color /= Quality * Directions;   
+                vec3 color_blur = Color*4.0;
+                txt_color = mix(txt_color, color_blur, blur);" : "") +   
+
+                "gl_FragColor = vec4(txt_color ,qt_Opacity);" +
+             "}"
+
+         }
 }
+
+
+
