@@ -41,21 +41,6 @@ ColumnLayout {
                 onNewValue: appSettings.bloom_radius = newValue
                 value: appSettings.bloom_radius
             }           
-             Label {
-                text: qsTr("Bloom Quality")
-            }
-            Slider {
-                id: bloomSlider
-                onValueChanged: if (enabled)
-                                    appSettings.bloomQuality = value
-                stepSize: 0.01
-                enabled: false
-                Component.onCompleted: {
-                    from = 0.01
-                    value = appSettings.bloomQuality
-                    enabled = true
-                }
-            }
             CheckableSlider {
                 name: qsTr("BurnIn")
                 onNewValue: appSettings.burnIn = newValue
