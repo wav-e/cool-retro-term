@@ -94,10 +94,10 @@ QtObject {
     property real bloom_radius: 0.50
     property real grid: 0.0
 
-    property real blur: 0.5
-    property real blurDirections: 16.0     
-    property real blurRadius: 0.1
-    property real blurQuality: 4.0
+    property real blur: 0.0
+    property real blurDirections: 8.0     
+    property real blurRadius: 2.7
+    property real blurQuality: 2.0
 
     property real rasterization_intensivity: 1.0
     property real chromaColor: 0.25
@@ -284,6 +284,16 @@ QtObject {
             "margin": _margin,
             "blinkingCursor": blinkingCursor,
             "frameMargin": _frameMargin,
+
+            "blur": blur,
+            "blurDirections": blurDirections,
+            "blurRadius": blurRadius,
+            "blurQuality": blurQuality,
+            "bloom_radius": bloom_radius,
+            "grid": grid,
+
+
+
         }
         return settings
     }
@@ -393,6 +403,13 @@ QtObject {
         _frameMargin = settings.frameMargin !== undefined ? settings.frameMargin : _frameMargin
 
         blinkingCursor = settings.blinkingCursor !== undefined ? settings.blinkingCursor : blinkingCursor
+
+        blur = settings.blur !== undefined ? settings.blur : blur
+        blurDirections = settings.blurDirections !== undefined ? settings.blurDirections : blurDirections
+        blurRadius = settings.blurRadius !== undefined ? settings.blurRadius : blurRadius
+        blurQuality = settings.blurQuality !== undefined ? settings.blurQuality : blurQuality
+        bloom_radius = settings.bloom_radius !== undefined ? settings.bloom_radius : bloom_radius
+        grid = settings.grid !== undefined ? settings.grid : grid
 
         handleFontChanged()
     }

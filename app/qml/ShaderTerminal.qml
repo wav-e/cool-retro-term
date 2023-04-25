@@ -558,7 +558,7 @@ Item {
                           vec3 bloomColor = bloomFullColor.rgb;
                           float bloomAlpha = bloomFullColor.a;
                           bloomColor = convertWithChroma(bloomColor);
-                          finalColor += clamp(bloomColor * bloom * bloomAlpha, 0.0, 0.5);"
+                          finalColor += clamp(bloomColor * bloom * bloomAlpha, 0.0, 1.0);"
                      : "") +
 
                  "finalColor *= screen_brightness;" +
@@ -613,6 +613,7 @@ Item {
          property real chromaColor: appSettings.chromaColor;
 
          property real screen_brightness: Utils.lint(0.5, 1.5, appSettings.brightness)
+         property real rasterization_intensivity: parent.rasterization_intensivity
 
 
          blending: false
@@ -640,10 +641,12 @@ Item {
              uniform highp vec4 fontColor;
              uniform highp vec4 backgroundColor;
              uniform lowp float screen_brightness;
+             uniform lowp float rasterization_intensivity;
              uniform vec2 screenResolution;
              uniform vec2 virtualResolution;" +
 
 
+            shaderLibrary.rasterizationShader +
 
              shaderLibrary.min2 +
              shaderLibrary.sum2 +
@@ -690,8 +693,12 @@ Item {
                     
                 // Output to screen
                 Color /= Quality * Directions;   
-                vec3 color_blur = Color*4.0;
-                txt_color = mix(txt_color, color_blur, blur);" : "") +   
+                vec3 color_blur = Color;
+                txt_color = mix(txt_color, color_blur, blur);
+                " : "") +
+
+
+   
 
                 "gl_FragColor = vec4(txt_color ,qt_Opacity);" +
              "}"
